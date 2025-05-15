@@ -5,3 +5,6 @@ license = "AGPL-3.0-or-later"
 srcDir = "src"
 bin = @["main"]
 
+# Dependencies
+requires "parseToml"
+
