@@ -8,9 +8,22 @@ type
   Config = object
     server: ServerConfig
 
-proc loadConfig*(path = "config.toml"): Config =
-  let tbl = parsetoml.parseFile("config.toml")
-  
-  result.server.host = tbl["server"]["host"].getStr("localhost")
-  result.server.port = tbl["server"]["port"].getInt(5974)
+const defaultConfig = Config(
+  server: ServerConfig(
+    host: "localhost",
+    port: 5974,
+  ),
+)
 
+proc loadConfig*(path = "config.toml"): Config =
+  result = defaultConfig
+  
+  let tbl = try:
+    parsetoml.parseFile("config.toml")
+  except IOError:
+    return
+
+  if tbl["server"] != nil:
+    result.server.host = tbl["server"]["host"].getStr(defaultConfig.server.host)
+    result.server.port = tbl["server"]["port"].getInt(defaultConfig.server.port)
+    
