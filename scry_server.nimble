@@ -7,4 +7,5 @@ bin = @["main"]
 
 # Dependencies
 requires "parseToml"
+requires "httpbeast >= 0.4.1"
 

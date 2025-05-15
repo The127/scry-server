@@ -2,11 +2,11 @@ import parsetoml
 
 type
   ServerConfig = object
-    host: string
-    port: int
+    host*: string
+    port*: int
 
   Config = object
-    server: ServerConfig
+    server*: ServerConfig
 
 const defaultConfig = Config(
   server: ServerConfig(
