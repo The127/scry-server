@@ -12,7 +12,7 @@ suite "Router tests":
       router.addRoute(
         "GET",
         "users",
-        proc(req: TestReq): Future[void] {.async.} =
+        proc(params: RouteParams, req: TestReq): Future[void] {.async.} =
           isCalled = true,
       )
 
@@ -32,7 +32,7 @@ suite "Router tests":
       router.addRoute(
         "GET",
         "users",
-        proc(req: TestReq): Future[void] {.async.} =
+        proc(params: RouteParams, req: TestReq): Future[void] {.async.} =
           isCalled = true,
       )
 
@@ -53,14 +53,14 @@ suite "Router tests":
       router.addRoute(
         "GET",
         "users",
-        proc(req: TestReq): Future[void] {.async.} =
+        proc(params: RouteParams, req: TestReq): Future[void] {.async.} =
           isCalled = true,
       )
 
       router.addRoute(
         "GET",
         "sessions",
-        proc(req: TestReq): Future[void] {.async.} =
+        proc(params: RouteParams, req: TestReq): Future[void] {.async.} =
           return,
       )
 
@@ -81,14 +81,14 @@ suite "Router tests":
       router.addRoute(
         "GET",
         "sessions",
-        proc(req: TestReq): Future[void] {.async.} =
+        proc(params: RouteParams, req: TestReq): Future[void] {.async.} =
           return,
       )
 
       router.addRoute(
         "GET",
         "users",
-        proc(req: TestReq): Future[void] {.async.} =
+        proc(params: RouteParams, req: TestReq): Future[void] {.async.} =
           isCalled = true,
       )
 
@@ -110,14 +110,14 @@ suite "Router tests":
       router.addRoute(
         "GET",
         "users",
-        proc(req: TestReq): Future[void] {.async.} =
+        proc(params: RouteParams, req: TestReq): Future[void] {.async.} =
           getCalled = true,
       )
 
       router.addRoute(
          "POST",
         "users",
-        proc(req: TestReq): Future[void] {.async.} =
+        proc(params: RouteParams, req: TestReq): Future[void] {.async.} =
           postCalled = true,
       )
 
@@ -139,7 +139,7 @@ suite "Router tests":
       router.addRoute(
         "GET",
         "users/:userId",
-        proc(req: TestReq): Future[void] {.async.} =
+        proc(params: RouteParams, req: TestReq): Future[void] {.async.} =
           isCalled = true,
       )
 
@@ -156,7 +156,7 @@ suite "Router tests":
       var isCalled = false
       let router = newRouter[TestReq](
         "api/v1",
-        proc(req: TestReq): Future[void] {.async.} =
+        proc(params: RouteParams, req: TestReq): Future[void] {.async.} =
           isCalled = true
       )
 
@@ -177,14 +177,14 @@ suite "Router tests":
       router.addRoute(
         "GET",
         "users/:userId/messages",
-        proc(req: TestReq): Future[void] {.async.} =
+        proc(params: RouteParams, req: TestReq): Future[void] {.async.} =
           wrongCalled = true,
       )
 
       router.addRoute(
         "GET",
         "users/userId/messages",
-        proc(req: TestReq): Future[void] {.async.} =
+        proc(params: RouteParams, req: TestReq): Future[void] {.async.} =
           correctCalled = true,
       )
 
@@ -195,4 +195,26 @@ suite "Router tests":
       check correctCalled
       check wrongCalled == false
 
+    waitFor(doTest())
+
+  test "extracts route params":
+    proc doTest() {.async.} =
+      # arrange
+      var receivedParams: RouteParams = new(RouteParams)
+      let router = newRouter[TestReq]()
+
+      router.addRoute(
+        "GET",
+        "users/:userId/messages/:messageId/details",
+        proc(params: RouteParams, req: TestReq): Future[void] {.async.} =
+          receivedParams = params,  
+      )
+
+      # act
+      await router.route("GET", "users/127/messages/69/details", TestReq())
+
+      # assert
+      check receivedParams["userId"] == "127"
+      check receivedParams["messageId"] == "69"
+      
     waitFor(doTest())

@@ -1,7 +1,13 @@
 import asyncdispatch, tables, options, strutils
 
 type
-  RequestHandler*[T] = proc(req: T): Future[void] {.gcsafe, async.}
+  RouteParams* = TableRef[string, string]
+
+  RequestHandler*[T] = proc(routeParams: RouteParams, req: T): Future[void] {.gcsafe, async.}
+
+  RouteMatch[T] = object
+    params: RouteParams
+    handler: RequestHandler[T]
 
   Route[T] = object
     paramNames: seq[string]
@@ -19,6 +25,9 @@ type
     prefix: string
     routingTree: RoutingNode[T]
     fallback: RequestHandler[T]
+
+proc `[]`*(params: RouteParams, param: string): string =
+  tables.`[]`(params, param)
   
 proc newRoutingLeaf[T](): RoutingLeaf[T] =
   RoutingLeaf[T](
@@ -32,7 +41,7 @@ proc newRoutingNode[T](): RoutingNode[T] =
     leaf: none[RoutingLeaf[T]](),
   )
 
-proc doNothing[T](req: T): Future[void] {.async.} =
+proc doNothing[T](_: RouteParams, _: T): Future[void] {.async.} =
   return
 
 proc newRouter*[T](prefix = "", fallback: RequestHandler[T] = doNothing[T]): Router[T] =
@@ -81,7 +90,7 @@ proc addRoute*[T](router: Router[T], verb: string, route: string, handler: Reque
     handler: handler,
   )
 
-proc matchRoute[T](router: Router[T], verb: string, path: string): Option[RequestHandler[T]] =
+proc matchRoute[T](router: Router[T], verb: string, path: string): Option[RouteMatch[T]] =
   let segments = path.split('/')
   var values: seq[string] = @[]
   var current = router.routingTree
@@ -95,22 +104,32 @@ proc matchRoute[T](router: Router[T], verb: string, path: string): Option[Reques
       values.add(segment)
 
     else:
-      return none[RequestHandler[T]]()
+      return none[RouteMatch[T]]()
 
   if current.leaf.isNone():
-    return none[RequestHandler[T]]()
+    return none[RouteMatch[T]]()
 
   let leaf = current.leaf.get()
 
   if not leaf.routes.hasKey(verb):
-    return none[RequestHandler[T]]()
+    return none[RouteMatch[T]]()
 
-  # TODO: handle params
   let route = leaf.routes[verb]
-  return some(route.handler)
-    
+
+  let params = newTable[string, string]()
+  for i, v in route.paramNames:
+    params[v] = values[i]
+
+  return some(RouteMatch[T](
+    params: params,
+    handler: route.handler,
+  ))
+
 proc route*[T](router: Router[T], verb: string, path: string, req: T): Future[void] {.async.} =
-  let handler = router.matchRoute(verb, path)
-    .get(router.fallback)
+  let match = router.matchRoute(verb, path)
+    .get(RouteMatch[T](
+      params: new(RouteParams),
+      handler: router.fallback,
+    ))
     
-  await handler(req)
+  await match.handler(match.params, req)
