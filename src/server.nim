@@ -1,21 +1,16 @@
-import router, asyncdispatch, httpbeast, config, options
+import router, asyncdispatch, httpbeast, config, options, request, routes/auth
 
-type
-  ScryRequest* = ref object
-    hbReq: Request
-
-proc hbReq(req: ScryRequest): Request = req.hbReq
-    
 proc fallback(params: RouteParams, req: ScryRequest): Future[void] {.async.} =
   req.hbReq.send("Not found")
 
 proc healthEndpoint(params: RouteParams, req: ScryRequest): Future[void] {.async.} =
-  req.hbReq.send("Healthy")
+  req.hbReq.send("Healthy", Http404)
 
 proc runServer*(settings: Config) =
   let router = newRouter[ScryRequest]("/api/v1", fallback)
 
-  router.addRoute("GET", "health", healthEndpoint)    
+  router.addRoute("GET", "health", healthEndpoint)
+  router.addAuthRoutes()
 
   proc onRequest(req: Request): Future[void] {.async.} =
     let verb = req.httpMethod()
@@ -26,9 +21,13 @@ proc runServer*(settings: Config) =
     if path.isNone():
       req.send("Missing path", Http400)
     
-    await router.route($verb.get(), path.get(), ScryRequest(
-      hbReq: req,
-    ))
+    await router.route(
+      $verb.get(),
+      path.get(),
+      newScryRequest(
+        hbReq = req,
+      ),
+    )
      
 
   run(onRequest, initSettings(
