@@ -26,10 +26,18 @@ proc newRouter*(prefix = ""): Router =
   Router(prefix: prefix, routes: @[])
 
 proc addRoute*(router: Router, route: string, handler: RequestHandler) =
+  let route = if router.prefix == "":
+      route
+    else:
+      router.prefix & "/" & route
+
   router.routes.add(Route(
     url: route,
     handler: handler,
   ))
 
-proc route*(router: Router, request: Request): Future[void] {.async.} = 
-  await router.routes[0].handler(request)
+proc route*(router: Router, request: Request): Future[void] {.async.} =
+  for route in router.routes:
+    if route.url == request.url:
+      await route.handler(request)
+      return
