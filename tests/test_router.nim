@@ -133,7 +133,7 @@ suite "Router tests":
       )
 
       router.addRoute(
-        "POST",
+         "POST",
         "users",
         proc(req: Request): Future[void] {.async.} =
           postCalled = true,
@@ -150,5 +150,87 @@ suite "Router tests":
       # assert
       check postCalled
       check getCalled == false
+
+    waitFor(doTest())
+
+  test "route with matcher":
+    proc doTest() {.async.} =
+      # arrange
+      var isCalled = false
+      let router = newRouter()
+
+      router.addRoute(
+        "GET",
+        "users/:userId",
+        proc(req: Request): Future[void] {.async.} =
+          isCalled = true,
+      )
+
+      let req = newRequest(
+        "GET",
+        "users/0"
+      )
+      
+      # act
+      await router.route(req)
+
+      # assert
+      check isCalled
+
+    waitFor(doTest())
+
+  test "fallback is called":
+    proc doTest() {.async.} =
+      var isCalled = false
+      let router = newRouter(
+        "api/v1",
+        proc(req: Request): Future[void] {.async.} =
+          isCalled = true
+      )
+
+      let req = newRequest(
+        "GET",
+        "foo",
+      )
+
+      # act
+      await router.route(req)
+
+      # assert
+      check isCalled
+
+    waitFor(doTest())
+
+  test "router with and without matcher":
+    proc doTest() {.async.} =
+      var correctCalled = false
+      var wrongCalled = false
+      let router = newRouter("api/v1")
+
+      router.addRoute(
+        "GET",
+        "users/:userId/messages",
+        proc(req: Request): Future[void] {.async.} =
+          wrongCalled = true,
+      )
+
+      router.addRoute(
+        "GET",
+        "users/userId/messages",
+        proc(req: Request): Future[void] {.async.} =
+          correctCalled = true,
+      )
+
+      let req = newRequest(
+        "GET",
+        "api/v1/users/userId/messages"
+      )
+
+      # act
+      await router.route(req)
+
+      # assert
+      check correctCalled
+      check wrongCalled == false
 
     waitFor(doTest())
