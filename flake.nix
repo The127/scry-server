@@ -13,6 +13,7 @@
         default = pkgs.mkShell {
           buildInputs = [
             pkgs.just
+            pkgs.hurl
             pkgs.nim
             pkgs.nimble
           ];
