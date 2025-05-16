@@ -18,9 +18,15 @@ proc runServer*(settings: Config) =
   router.addRoute("GET", "health", healthEndpoint)    
 
   proc onRequest(req: Request): Future[void] {.async.} =
-    let verb = req.httpMethod().get()
-    let path = req.path().get()
-    await router.route($verb, path, ScryRequest(
+    let verb = req.httpMethod()
+    if verb.isNone():
+      req.send("Missing http verb", Http400)
+    
+    let path = req.path()
+    if path.isNone():
+      req.send("Missing path", Http400)
+    
+    await router.route($verb.get(), path.get(), ScryRequest(
       hbReq: req,
     ))
      
