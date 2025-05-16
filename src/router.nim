@@ -1,61 +1,48 @@
 import asyncdispatch, tables, options, strutils
 
 type
-  Request* = ref object
-    verb: string
-    url: string
+  RequestHandler*[T] = proc(req: T): Future[void] {.gcsafe, async.}
 
-  RequestHandler* = proc(req: Request): Future[void] {.gcsafe, async.}
-
-  Route = object
+  Route[T] = object
     paramNames: seq[string]
-    handler: RequestHandler
+    handler: RequestHandler[T]
 
-  RoutingLeaf = object
-    routes: TableRef[string, Route]
+  RoutingLeaf[T] = object
+    routes: TableRef[string, Route[T]]
 
-  RoutingNode = ref object
-    staticChildren: TableRef[string, RoutingNode]
-    paramChild: Option[RoutingNode]
-    leaf: Option[RoutingLeaf]
+  RoutingNode[T] = ref object
+    staticChildren: TableRef[string, RoutingNode[T]]
+    paramChild: Option[RoutingNode[T]]
+    leaf: Option[RoutingLeaf[T]]
     
-  Router* = ref object
+  Router*[T] = ref object
     prefix: string
-    routingTree: RoutingNode
-    fallback: RequestHandler
+    routingTree: RoutingNode[T]
+    fallback: RequestHandler[T]
   
-proc newRequest*(verb: string, url: string): Request =
-  Request(
-    verb: verb,
-    url: url,
+proc newRoutingLeaf[T](): RoutingLeaf[T] =
+  RoutingLeaf[T](
+    routes: newTable[string, Route[T]](),
   )
 
-proc url*(req: Request): string =
-  req.url
-
-proc newRoutingLeaf(): RoutingLeaf =
-  RoutingLeaf(
-    routes: newTable[string, Route](),
+proc newRoutingNode[T](): RoutingNode[T] =
+  RoutingNode[T](
+    staticChildren: newTable[string, RoutingNode[T]](),
+    paramChild: none[RoutingNode[T]](),
+    leaf: none[RoutingLeaf[T]](),
   )
 
-proc newRoutingNode(): RoutingNode =
-  RoutingNode(
-    staticChildren: newTable[string, RoutingNode](),
-    paramChild: none[RoutingNode](),
-    leaf: none[RoutingLeaf](),
-  )
-
-proc doNothing(req: Request): Future[void] {.async.} =
+proc doNothing[T](req: T): Future[void] {.async.} =
   return
 
-proc newRouter*(prefix = "", fallback: RequestHandler = doNothing): Router =
-  Router(
+proc newRouter*[T](prefix = "", fallback: RequestHandler[T] = doNothing[T]): Router[T] =
+  Router[T](
     prefix: prefix,
-    routingTree: newRoutingNode(),
+    routingTree: newRoutingNode[T](),
     fallback: fallback,
   )
 
-proc addRoute*(router: Router, verb: string, route: string, handler: RequestHandler) =
+proc addRoute*[T](router: Router[T], verb: string, route: string, handler: RequestHandler[T]) =
   let route = if router.prefix == "":
       route
     else:
@@ -71,30 +58,30 @@ proc addRoute*(router: Router, verb: string, route: string, handler: RequestHand
       paramNames.add(paramName)
 
       if current.paramChild.isNone():
-        current.paramChild = some(newRoutingNode())
+        current.paramChild = some(newRoutingNode[T]())
 
       current = current.paramChild.get()
       
     else:
       if not current.staticChildren.hasKey(segment):
-        current.staticChildren[segment] = newRoutingNode()
+        current.staticChildren[segment] = newRoutingNode[T]()
 
       current = current.staticChildren[segment]
 
   if current.leaf.isNone():
-    current.leaf = some(newRoutingLeaf())
+    current.leaf = some(newRoutingLeaf[T]())
 
   let leaf = current.leaf.get()
   
   if leaf.routes.hasKey(verb):
     raise newException(ValueError, "Route collission: " & verb & " - " & route)
 
-  leaf.routes[verb] = Route(
+  leaf.routes[verb] = Route[T](
     paramNames: paramNames,
     handler: handler,
   )
 
-proc matchRoute(router: Router, verb: string, path: string): Option[RequestHandler] =
+proc matchRoute[T](router: Router[T], verb: string, path: string): Option[RequestHandler[T]] =
   let segments = path.split('/')
   var values: seq[string] = @[]
   var current = router.routingTree
@@ -108,22 +95,22 @@ proc matchRoute(router: Router, verb: string, path: string): Option[RequestHandl
       values.add(segment)
 
     else:
-      return none[RequestHandler]()
+      return none[RequestHandler[T]]()
 
   if current.leaf.isNone():
-    return none[RequestHandler]()
+    return none[RequestHandler[T]]()
 
   let leaf = current.leaf.get()
 
   if not leaf.routes.hasKey(verb):
-    return none[RequestHandler]()
+    return none[RequestHandler[T]]()
 
   # TODO: handle params
   let route = leaf.routes[verb]
   return some(route.handler)
     
-proc route*(router: Router, request: Request): Future[void] {.async.} =
-  let handler = router.matchRoute(request.verb, request.url)
+proc route*[T](router: Router[T], verb: string, path: string, req: T): Future[void] {.async.} =
+  let handler = router.matchRoute(verb, path)
     .get(router.fallback)
     
-  await handler(request)
+  await handler(req)

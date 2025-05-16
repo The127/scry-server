@@ -1,26 +1,23 @@
 import unittest, asyncdispatch
 import ../src/router
 
+type TestReq = object
+
 suite "Router tests":
   test "router with prefix and one route":
     proc doTest() {.async.} =
       # arrange
       var isCalled = false
-      let router = newRouter("api/v1")
+      let router = newRouter[TestReq]("api/v1")
       router.addRoute(
         "GET",
         "users",
-        proc(req: Request): Future[void] {.async.} =
+        proc(req: TestReq): Future[void] {.async.} =
           isCalled = true,
       )
 
-      let req = newRequest(
-        "GET",
-        "api/v1/users",
-      )
-
       # act
-      await router.route(req)
+      await router.route("GET", "api/v1/users", TestReq())
   
       # assert
       check isCalled
@@ -31,21 +28,16 @@ suite "Router tests":
     proc doTest() {.async.} =
       # arrange
       var isCalled = false
-      let router = newRouter()
+      let router = newRouter[TestReq]()
       router.addRoute(
         "GET",
         "users",
-        proc(req: Request): Future[void] {.async.} =
+        proc(req: TestReq): Future[void] {.async.} =
           isCalled = true,
       )
 
-      let req = newRequest(
-        "GET",
-        "users",
-      )
-
       # act
-      await router.route(req)
+      await router.route("GET", "users", TestReq())
 
       # assert
       check isCalled
@@ -56,29 +48,24 @@ suite "Router tests":
     proc dotest() {.async.} =
       # arrange
       var isCalled = false
-      let router = newRouter()
+      let router = newRouter[TestReq]()
 
       router.addRoute(
         "GET",
         "users",
-        proc(req: Request): Future[void] {.async.} =
+        proc(req: TestReq): Future[void] {.async.} =
           isCalled = true,
       )
 
       router.addRoute(
         "GET",
         "sessions",
-        proc(req: Request): Future[void] {.async.} =
+        proc(req: TestReq): Future[void] {.async.} =
           return,
       )
 
-      let req = newRequest(
-        "GET",
-        "users",
-      )
-
       # act
-      await router.route(req)
+      await router.route("GET", "users", TestReq())
 
       #assert
       check isCalled
@@ -89,29 +76,24 @@ suite "Router tests":
     proc doTest() {.async.} =
       # arrange
       var isCalled = false
-      let router = newRouter()
+      let router = newRouter[TestReq]()
 
       router.addRoute(
         "GET",
         "sessions",
-        proc(req: Request): Future[void] {.async.} =
+        proc(req: TestReq): Future[void] {.async.} =
           return,
       )
 
       router.addRoute(
         "GET",
         "users",
-        proc(req: Request): Future[void] {.async.} =
+        proc(req: TestReq): Future[void] {.async.} =
           isCalled = true,
       )
 
-      let req = newRequest(
-        "GET",
-        "users"
-      )
-
       # act
-      await router.route(req)
+      await router.route("GET", "users", TestReq())
 
       # assert
       check isCalled
@@ -123,29 +105,24 @@ suite "Router tests":
       # arrange
       var getCalled = false
       var postCalled = false
-      let router = newRouter()
+      let router = newRouter[TestReq]()
 
       router.addRoute(
         "GET",
         "users",
-        proc(req: Request): Future[void] {.async.} =
+        proc(req: TestReq): Future[void] {.async.} =
           getCalled = true,
       )
 
       router.addRoute(
          "POST",
         "users",
-        proc(req: Request): Future[void] {.async.} =
+        proc(req: TestReq): Future[void] {.async.} =
           postCalled = true,
       )
 
-      let req = newRequest(
-        "POST",
-        "users"
-      )
-
       # act
-      await router.route(req)
+      await router.route("POST", "users", TestReq())
 
       # assert
       check postCalled
@@ -157,22 +134,17 @@ suite "Router tests":
     proc doTest() {.async.} =
       # arrange
       var isCalled = false
-      let router = newRouter()
+      let router = newRouter[TestReq]()
 
       router.addRoute(
         "GET",
         "users/:userId",
-        proc(req: Request): Future[void] {.async.} =
+        proc(req: TestReq): Future[void] {.async.} =
           isCalled = true,
       )
 
-      let req = newRequest(
-        "GET",
-        "users/0"
-      )
-      
       # act
-      await router.route(req)
+      await router.route("GET", "users/0", TestReq())
 
       # assert
       check isCalled
@@ -182,19 +154,14 @@ suite "Router tests":
   test "fallback is called":
     proc doTest() {.async.} =
       var isCalled = false
-      let router = newRouter(
+      let router = newRouter[TestReq](
         "api/v1",
-        proc(req: Request): Future[void] {.async.} =
+        proc(req: TestReq): Future[void] {.async.} =
           isCalled = true
       )
 
-      let req = newRequest(
-        "GET",
-        "foo",
-      )
-
       # act
-      await router.route(req)
+      await router.route("GET", "foo", TestReq())
 
       # assert
       check isCalled
@@ -205,29 +172,24 @@ suite "Router tests":
     proc doTest() {.async.} =
       var correctCalled = false
       var wrongCalled = false
-      let router = newRouter("api/v1")
+      let router = newRouter[TestReq]("api/v1")
 
       router.addRoute(
         "GET",
         "users/:userId/messages",
-        proc(req: Request): Future[void] {.async.} =
+        proc(req: TestReq): Future[void] {.async.} =
           wrongCalled = true,
       )
 
       router.addRoute(
         "GET",
         "users/userId/messages",
-        proc(req: Request): Future[void] {.async.} =
+        proc(req: TestReq): Future[void] {.async.} =
           correctCalled = true,
       )
 
-      let req = newRequest(
-        "GET",
-        "api/v1/users/userId/messages"
-      )
-
       # act
-      await router.route(req)
+      await router.route("GET", "api/v1/users/userId/messages", TestReq())
 
       # assert
       check correctCalled
