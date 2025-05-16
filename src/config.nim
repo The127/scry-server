@@ -5,7 +5,7 @@ type
     host*: string
     port*: int
 
-  Config = object
+  Config* = object
     server*: ServerConfig
 
 const defaultConfig = Config(

@@ -1,14 +1,7 @@
-import config, asyncdispatch, httpbeast
+import config, server
 
 echo "hello world!"
 
 let settings* = loadConfig()
 
-proc onRequest(req: Request): Future[void] {.async.} =
-  req.send("Hello World")
-
-run(onRequest, initSettings(
-  port = Port(settings.server.port),
-  bindAddr = settings.server.host,
-))
-
+runServer(settings)
