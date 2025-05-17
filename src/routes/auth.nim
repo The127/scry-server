@@ -1,4 +1,4 @@
-import asyncdispatch, ../router, ../server, ../request, httpbeast, jsony, options
+import asyncdispatch, ../router, ../server, ../request, httpx, jsony, options
 
 type
   InitialAdminRequestDto = object

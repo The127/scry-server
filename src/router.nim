@@ -9,11 +9,11 @@ type
     params: RouteParams
     handler: RequestHandler[T]
 
-  Route[T] = object
+  Route[T] = ref object
     paramNames: seq[string]
     handler: RequestHandler[T]
 
-  RoutingLeaf[T] = object
+  RoutingLeaf[T] = ref object
     routes: TableRef[string, Route[T]]
 
   RoutingNode[T] = ref object

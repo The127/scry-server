@@ -1,4 +1,4 @@
-import router, asyncdispatch, httpbeast, config, options, request, routes/auth
+import router, asyncdispatch, httpx, config, options, request, routes/auth
 
 proc fallback(params: RouteParams, req: ScryRequest): Future[void] {.async.} =
   req.hbReq.send("Not found")

@@ -1,4 +1,4 @@
-import httpbeast
+import httpx
 
 type
   ScryRequest* = ref object

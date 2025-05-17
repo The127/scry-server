@@ -7,6 +7,6 @@ bin = @["main"]
 
 # Dependencies
 requires "parseToml"
-requires "httpbeast >= 0.4.1"
+requires "httpx"
 requires "variant"
 requires "jsony"

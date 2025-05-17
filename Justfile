@@ -6,7 +6,7 @@ run: build
     ./main
 
 release:
-    nimble build -d:release
+    nimble build -d:release 
 
 test:
     nimble test
