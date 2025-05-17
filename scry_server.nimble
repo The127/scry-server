@@ -9,3 +9,4 @@ bin = @["main"]
 requires "parseToml"
 requires "httpbeast >= 0.4.1"
 requires "variant"
+requires "jsony"
