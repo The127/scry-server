@@ -3,7 +3,7 @@ import asyncdispatch, tables, options, strutils
 type
   RouteParams* = TableRef[string, string]
 
-  RequestHandler*[T] = proc(routeParams: RouteParams, req: T): Future[void] {.gcsafe, async.}
+  RequestHandler*[T] = proc(routeParams: RouteParams, req: T): Future[void] {. async.}
 
   RouteMatch[T] = object
     params: RouteParams

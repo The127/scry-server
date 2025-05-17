@@ -29,7 +29,7 @@ proc registerMiddleware*(mw: Middleware) =
 
 macro registerHandler*(cmdType: typedesc, handler: untyped): untyped =
   quote do:
-    proc dispatch(cmd: `cmdType`, ctx: Context): Future[void] {.async.} =
+    proc dispatch*(cmd: `cmdType`, ctx: Context): Future[void] {.async.} =
       var chain: Next = proc(cmd: Command, ctx: Context): Future[void] {.async.} =
         await `handler`(`cmdType`(cmd), ctx)
 
