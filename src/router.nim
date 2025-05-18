@@ -131,5 +131,5 @@ proc route*[T](router: Router[T], verb: string, path: string, req: T): Future[vo
       params: new(RouteParams),
       handler: router.fallback,
     ))
-    
+ 
   await match.handler(match.params, req)
