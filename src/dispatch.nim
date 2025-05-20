@@ -12,7 +12,7 @@ proc newContext*(): Context =
     data: initTable[string, Any](),
   )
 
-proc with*(ctx: Context, key: string, value: Any): Context =
+proc with*(ctx: Context, key: string, value: Any): Context {.discardable.} =
   ctx.data[key] = value
   return ctx
 
